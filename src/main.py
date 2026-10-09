@@ -12,18 +12,18 @@ from datetime import datetime
 
 
 def prepare_data(data_path: str) -> pd.DataFrame:
-    """Загружает и подготавливает данные."""
+    """загружает и подготавливает данные"""
     df = pd.read_csv(data_path)
-    print(f"Исходный размер: {df.shape}")
+    print(f"исходный размер {df.shape}")
 
-    # Удаляем столбцы с большим количеством пропусков
+    #удаляем столбцы с большим количеством пропусков
     df = df.drop(columns=["encounter_id", "patient_nbr", "weight", "payer_code"])
 
-    # Заменяем '?' на NaN и удаляем строки с пропусками
+    #заменяем вопросы на nan и удаляем строки с пропусками
     df = df.replace("?", np.nan)
     df = df.dropna()
 
-    # Кодируем категориальные признаки
+    # кодируем категориальные признаки
     categorical_cols = df.select_dtypes(include=["object"]).columns
     le_dict = {}
     for col in categorical_cols:
@@ -31,7 +31,7 @@ def prepare_data(data_path: str) -> pd.DataFrame:
         df[col] = le.fit_transform(df[col].astype(str))
         le_dict[col] = le
 
-    # Целевая переменная: readmitted (Yes/No/NO) -> бинарная
+    #целевая превращаем переменную readmitted в бинарную
     df["readmitted_binary"] = (df["readmitted"] != "NO").astype(int)
     df = df.drop(columns=["readmitted"])
 
@@ -39,7 +39,7 @@ def prepare_data(data_path: str) -> pd.DataFrame:
 
 
 def train_model(df: pd.DataFrame, random_seed: int, n_estimators: int):
-    """Обучает модель и возвращает её."""
+    """обучает модель и возвращает её"""
     target = "readmitted_binary"
     X = df.drop(columns=[target])
     y = df[target]
@@ -57,21 +57,21 @@ def train_model(df: pd.DataFrame, random_seed: int, n_estimators: int):
     accuracy = accuracy_score(y_test, y_pred)
     report = classification_report(y_test, y_pred, output_dict=True)
 
-    print(f"Accuracy: {accuracy:.4f}")
+    print(f"accuracy {accuracy:.4f}")
     return model, accuracy, report
 
 
 def save_results(model, accuracy: float, report: dict, results_dir: str, le_dict: dict):
-    """Сохраняет модель и результаты в папку results."""
+    """сохраняет модель и результаты в папку results"""
     os.makedirs(results_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # Сохраняем модель
+    #сохраняем модель
     model_path = os.path.join(results_dir, f"model_{timestamp}.pkl")
     joblib.dump(model, model_path)
-    print(f"Модель сохранена: {model_path}")
+    print(f"модель сохранена {model_path}")
 
-    # Сохраняем метрики
+    #сохраняем метрики
     metrics = {
         "timestamp": timestamp,
         "accuracy": accuracy,
@@ -80,27 +80,27 @@ def save_results(model, accuracy: float, report: dict, results_dir: str, le_dict
     metrics_path = os.path.join(results_dir, f"metrics_{timestamp}.json")
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)
-    print(f"Метрики сохранены: {metrics_path}")
+    print(f"метрики сохранены {metrics_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Обучение модели предсказания повторной госпитализации")
-    parser.add_argument("--data_path", type=str, required=True, help="Путь к CSV-файлу с данными")
-    parser.add_argument("--random_seed", type=int, default=42, help="Случайное зерно")
-    parser.add_argument("--n_estimators", type=int, default=100, help="Количество деревьев в лесу")
-    parser.add_argument("--results_dir", type=str, default="results", help="Папка для результатов")
+    parser = argparse.ArgumentParser(description="обучение модели предсказания повторной госпитализации")
+    parser.add_argument("--data_path", type=str, required=True, help="путь к csv файлу с данными")
+    parser.add_argument("--random_seed", type=int, default=42, help="случайное зерно")
+    parser.add_argument("--n_estimators", type=int, default=100, help="количество деревьев в лесу")
+    parser.add_argument("--results_dir", type=str, default="results", help="папка для результатов")
     args = parser.parse_args()
 
-    print("=== Шаг 1: Подготовка данных ===")
+    print("шаг 1 подготовка данных")
     df, le_dict = prepare_data(args.data_path)
 
-    print("=== Шаг 2: Обучение модели ===")
+    print("шаг 2 обучение модели")
     model, accuracy, report = train_model(df, args.random_seed, args.n_estimators)
 
-    print("=== Шаг 3: Сохранение результатов ===")
+    print("шаг 3 сохранение результатов")
     save_results(model, accuracy, report, args.results_dir, le_dict)
 
-    print("=== Готово! ===")
+    print("готово")
 
 
 if __name__ == "__main__":
