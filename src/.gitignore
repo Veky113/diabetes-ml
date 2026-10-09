@@ -1,0 +1,9 @@
+# Игнорируем данные и результаты
+data/*.csv
+data/*.zip
+models/
+results/
+
+# Игнорируем системные файлы Python
+__pycache__/
+.venv/
